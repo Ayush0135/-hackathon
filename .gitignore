@@ -21,3 +21,21 @@ ENV/
 
 # Agent
 .agent/
+
+# Databases
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+npm-debug.log
+
+# Next.js
+.next/
+out/
+build/
+dist/
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+.env.local

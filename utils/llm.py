@@ -35,8 +35,8 @@ def _call_gemini(prompt):
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY not found.")
     
-    # Updated to gemini-2.0-flash based on available models
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    # Switched back to stable model to avoid 400 Bad Request / Deprecation issues
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     # Simple retry logic for ResourceExhausted or other transient errors
     # Reduced retries for faster failover to other models/offline
@@ -50,8 +50,13 @@ def _call_gemini(prompt):
                 raise ValueError("Gemini returned empty response.")
             return response.text
         except Exception as e:
+            error_msg = str(e)
+            if "400" in error_msg:
+                print(f"  [Gemini] 400 Bad Request (Invalid Argument/Model). Switching strategies...")
+                raise e # Propagate so execute_strategies picks next one
+                
             # Check if it's a quota error (429/ResourceExhausted)
-            if "429" in str(e) or "ResourceExhausted" in str(e) or "QuotaExceeded" in str(e):
+            if "429" in error_msg or "ResourceExhausted" in error_msg or "QuotaExceeded" in error_msg:
                 if attempt < max_retries - 1:
                     wait_time = base_delay * (2 ** attempt)  # Exponential backoff: 5s, 10s, 20s
                     print(f"  [Gemini] Rate limit hit. Retrying in {wait_time}s...")

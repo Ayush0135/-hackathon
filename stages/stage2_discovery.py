@@ -80,20 +80,20 @@ def stage2_document_discovery(decomposition_data):
         for query in subtopic['search_queries']:
             all_queries.append((subtopic, query))
 
-    print(f"Executing {len(all_queries)} search queries sequentially...")
+    print(f"Executing {len(all_queries)} search queries in parallel...")
     
-    # Execute sequentially to avoid 429 Rate Limits on Google Custom Search API
-    for subtopic, query in all_queries:
-        results = execute_search_query(subtopic, query)
-        for item in results:
-            url = item.get('link')
-            if url in seen_urls:
-                continue
-            seen_urls.add(url)
-            search_candidates.append(item)
+    # Execute concurrently to speed up discovery
+    with ThreadPoolExecutor(max_workers=4) as search_executor:
+        future_to_query = {search_executor.submit(execute_search_query, s, q): (s, q) for s, q in all_queries}
         
-        # Respect API Rate Limits
-        time.sleep(2)
+        for future in as_completed(future_to_query):
+            results = future.result()
+            for item in results:
+                url = item.get('link')
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                search_candidates.append(item)
 
     # Limit to top 20 candidates total (User Constraint)
     if len(search_candidates) > 20:
