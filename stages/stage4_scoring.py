@@ -6,11 +6,13 @@ def stage4_academic_scoring(analyzed_documents, topic):
     print("\n--- STAGE 4: ACADEMIC SCORING (Groq) ---")
     scored_documents = []
     
-    for doc in analyzed_documents:
+    # process in parallel
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    
+    def score_single_doc(doc):
         analysis = doc.get('analysis', {})
-        if not analysis:
-            continue
-            
+        if not analysis: return None
+        
         print(f"Scoring: {doc['title'][:50]}...")
         
         prompt = f"""
@@ -39,20 +41,33 @@ def stage4_academic_scoring(analyzed_documents, topic):
         }}
         """
         
-        response = query_stage("scoring", prompt)
-        
-        from utils.json_parser import extract_json_from_text
-        score_data = extract_json_from_text(response)
-        
-        if score_data:
-            doc['scoring'] = score_data
-            scored_documents.append(doc)
-            print(f"  Score: {score_data.get('score')}")
-        else:
-            print(f"  Error parsing score for {doc['title'][:20]}")
-            # print(f"  Raw: {response[:100]}...")
+        try:
+            response = query_stage("scoring", prompt)
+            from utils.json_parser import extract_json_from_text
+            score_data = extract_json_from_text(response)
             
-        import time
-        time.sleep(2) # Avoid Rate Limits
+            if score_data:
+                doc['scoring'] = score_data
+                print(f"  Score: {score_data.get('score')} - {doc['title'][:30]}")
+                return doc
+        except Exception as e:
+            print(f"Error scoring {doc['title'][:10]}: {e}")
+            
+        # Fallback for ANY failure (LLM or Parser): Default to 3 to keep pipeline moving
+        print(f"  Score: 3 (Defaulted/Failed) - {doc['title'][:30]}")
+        doc['scoring'] = {
+            "score": 3,
+            "strengths": "Defaulted due to scoring error/LLM limit",
+            "weaknesses": "Could not verify"
+        }
+        return doc
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(score_single_doc, doc): doc for doc in analyzed_documents}
+        
+        for future in as_completed(futures):
+            res = future.result()
+            if res:
+                scored_documents.append(res)
             
     return scored_documents

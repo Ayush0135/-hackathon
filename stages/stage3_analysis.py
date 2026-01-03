@@ -130,14 +130,16 @@ def stage3_document_analysis(documents):
     print("\n--- STAGE 3: DOCUMENT ANALYSIS (Sequential) ---")
     analyzed_documents = []
     
-    # Process documents sequentially to avoid Rate Limits
-    for doc in documents:
-        result = analyze_single_document(doc)
-        if result:
-            analyzed_documents.append(result)
+    # Process documents in parallel
+    # Increased speed by using threading, relying on robust fallback for rate limits
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_to_doc = {executor.submit(analyze_single_document, doc): doc for doc in documents}
         
-        # Pace requests to respect API limits
-        import time
-        time.sleep(2)
+        for future in as_completed(future_to_doc):
+            result = future.result()
+            if result:
+                analyzed_documents.append(result)
                 
     return analyzed_documents
