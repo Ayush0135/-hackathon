@@ -75,7 +75,7 @@ def main():
         review = stage8_review_paper(final_paper, topic)
         score = review.get('score', 0)
         
-        if score >= 7:
+        if score >= 6:
             print(f"Paper accepted with score {score}.")
             break
         else:

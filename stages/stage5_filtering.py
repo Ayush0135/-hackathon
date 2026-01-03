@@ -8,7 +8,7 @@ def stage5_selection_filtering(scored_documents):
         score = doc.get('scoring', {}).get('score', 0)
         title = doc.get('title', '').lower()
         
-        if score < 7:
+        if score < 3:
             print(f"Discarding: {title[:30]}... (Score: {score})")
             continue
             

@@ -37,9 +37,19 @@ def query_offline_llm(prompt, model_name=None):
         ]
         
         if client:
-            response = client.chat(model=target_model, messages=messages)
+            response = client.chat(
+                model=target_model, 
+                messages=messages, 
+                options={'num_ctx': 8192}, # Increased context window for research
+                format='json' if 'json' in prompt.lower() else ''
+            )
         else:
-            response = ollama.chat(model=target_model, messages=messages)
+            response = ollama.chat(
+                model=target_model, 
+                messages=messages, 
+                options={'num_ctx': 8192}, # Increased context window for research
+                format='json' if 'json' in prompt.lower() else ''
+            )
             
         return response['message']['content']
     except Exception as e:

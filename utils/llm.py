@@ -1,6 +1,9 @@
 
 import os
 import time
+import warnings
+# Suppress the deprecation warning
+warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
 import google.generativeai as genai
 from groq import Groq
 from anthropic import Anthropic, NotFoundError
@@ -13,6 +16,11 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+
+# Import Memory System
+from utils.memory import MemorySystem
+# Initialize Memory System
+memory_system = MemorySystem()
 
 # Initialize Clients
 if GEMINI_API_KEY:
@@ -103,27 +111,29 @@ def _call_anthropic(prompt):
 # Format: "stage_name": ["model_id_1", "model_id_2"]
 # Model IDs can be: 'groq', 'anthropic', 'gemini', or 'ollama:model_name'
 STAGE_CONFIG = {
-    "default": ["groq", "anthropic", "ollama:llama3.2"],
+    "default": ["groq", "anthropic", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Fast, Logic Heavy
-    "topic": ["groq", "anthropic", "ollama:llama3.2"],
+    "topic": ["groq", "anthropic", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Search filtering (High volume, needs speed)
-    "discovery": ["groq", "ollama:llama3.2"], 
+    "discovery": ["groq", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"], 
     
     # Analysis (Heavy Context, Reasoning)
     "analysis": [
         "groq",                      
-        "anthropic",                 
-        "ollama:llama3.2"      
+        "ollama:llama3.2",
+        "ollama:gemma2",
+        "ollama:mistral"
     ],
     
     # Scoring (FAST, strict formatting)
-    "scoring": ["groq", "ollama:llama3.2"],
+    "scoring": ["groq", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Synthesis & Generation (Creative, high quality)
-    "synthesis": ["anthropic", "groq", "ollama:llama3.2"],
-    "generation": ["anthropic", "groq", "ollama:llama3.2"]
+    "synthesis": ["groq", "anthropic", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
+    "generation": ["anthropic", "groq", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
+    "review": ["anthropic", "groq", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"]
 }
 
 def _resolve_strategy(model_id):
@@ -159,13 +169,12 @@ def execute_strategies(strategies, prompt):
             
             error_msg = str(e)
             if "429" in error_msg or "Rate limit" in error_msg:
-                print(colored(f"  [Limit] Provider rate limited. Switching to backup...", "yellow"))
+                print(colored(f"  [Limit] Strategy {i+1} ({func.__name__ if hasattr(func, '__name__') else 'Unknown'}) rate limited. Switching...", "yellow"))
             elif "not found" in error_msg.lower():
-                 print(colored(f"  [Config] Key not found/Model missing. Switching...", "yellow"))
+                 print(colored(f"  [Config] Strategy {i+1} Key not found/Model missing. Switching...", "yellow"))
             else:
-                print(colored(f"  [Error] Strategy {i+1} failed: {error_msg[:80]}...", "red"))
+                print(colored(f"  [Error] Strategy {i+1} failed: {error_msg[:200]}...", "red"))
                 
-            # print(colored(f"  [Fallback] Transferring context...", "yellow"))
             continue
             
     # Fallback to generic offline if enabled and not already tried
@@ -186,9 +195,27 @@ def query_stage(stage, prompt):
     model_chain = STAGE_CONFIG.get(stage, STAGE_CONFIG['default'])
     
     # Resolve to functions
+    # Resolve to functions
     strategies = [_resolve_strategy(m) for m in model_chain]
     
-    return execute_strategies(strategies, prompt)
+    # --- Memory Integration ---
+    # 1. Retrieve Context
+    context_str = memory_system.retrieve_context(prompt)
+    
+    final_prompt = prompt
+    if context_str:
+        # Append context to prompt in a clearly separated way
+        final_prompt = f"{prompt}\n\n[SYSTEM: The following are relevant past interactions to help with context]\n{context_str}\n[End Context]"
+    
+    # 2. Execute
+    response = execute_strategies(strategies, final_prompt)
+    
+    # 3. Save Memory
+    # We save the *original* prompt, not the one with context, to avoid recursive context bloat
+    if response:
+        memory_system.add_memory(prompt, response, metadata={"stage": stage})
+        
+    return response
 
 # --- Deprecated / Compatibility ---
 

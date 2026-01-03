@@ -1,4 +1,4 @@
-from utils.llm import query_gemini
+from utils.llm import query_stage
 import json
 
 def stage1_topic_decomposition(topic):
@@ -28,20 +28,13 @@ def stage1_topic_decomposition(topic):
     """
     
     # Logic task, so safe to fall back to Groq/Anthropic
-    response = query_gemini(prompt, fallback_to_others=True)
-    try:
-        # Find the first { and last }
-        start_idx = response.find('{')
-        end_idx = response.rfind('}')
-        
-        if start_idx != -1 and end_idx != -1:
-            json_str = response[start_idx:end_idx+1]
-        else:
-            json_str = response
-
-        data = json.loads(json_str)
+    response = query_stage("topic", prompt)
+    
+    from utils.json_parser import extract_json_from_text
+    data = extract_json_from_text(response)
+    
+    if data:
         return data
-    except Exception as e:
-        print(f"Error parsing Stage 1 output: {e}")
-        # print(f"Raw Response: {response}") # verbose
+    else:
+        print(f"Error parsing Stage 1 output")
         return None

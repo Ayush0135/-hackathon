@@ -1,4 +1,5 @@
-from utils.llm import query_gemini
+from utils.llm import query_stage
+from utils.json_parser import extract_json_from_text
 from stages.stage2_discovery import stage2_document_discovery
 from stages.stage3_analysis import stage3_document_analysis
 import json
@@ -40,21 +41,12 @@ def stage3b_deepen_research(analyzed_docs, topic):
     """
     
     print("  Identifying knowledge gaps...")
-    response = query_gemini(prompt, fallback_to_others=True)
+    # Using 'analysis' stage config (Groq/Anthropic/Ollama)
+    response = query_stage("analysis", prompt)
     
-    try:
-        if "[" in response:
-             # loose parsing
-             start = response.find('[')
-             end = response.rfind(']') + 1
-             new_queries_list = json.loads(response[start:end])
-        else:
-             new_queries_list = []
-    except Exception as e:
-        print(f"  Error parsing deep queries: {e}")
-        new_queries_list = []
-        
-    if not new_queries_list:
+    new_queries_list = extract_json_from_text(response)
+    
+    if not new_queries_list or not isinstance(new_queries_list, list):
         print("  No further deep queries generated.")
         return []
 

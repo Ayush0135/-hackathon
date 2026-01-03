@@ -1,9 +1,8 @@
-from utils.llm import query_gemini
-import json
-import re
+from utils.llm import query_stage
 import time
+from utils.json_parser import extract_json_from_text
 
-def chunk_text(text, chunk_size=12000, overlap=500):
+def chunk_text(text, chunk_size=15000, overlap=1000):
     """
     Splits text into overlapping chunks.
     """
@@ -23,34 +22,16 @@ def chunk_text(text, chunk_size=12000, overlap=500):
             
     return chunks
 
-def extract_json(text):
-    """
-     robustly extract JSON from text using regex 
-    """
-    try:
-        # Try finding the first { and last }
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if match:
-            json_str = match.group(0)
-            # Remove trailing commas before closing braces/brackets
-            json_str = re.sub(r',\s*\}', '}', json_str)
-            json_str = re.sub(r',\s*\]', ']', json_str)
-            return json.loads(json_str)
-        return None
-    except:
-        return None
-
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 def analyze_single_document(doc):
     try:
         # print(f"Analyzing: {doc['title'][:30]}...")
         full_text = doc['raw_text']
         
         # Strategy Decision: Chunk vs Whole
-        if len(full_text) > 12000:
+        # Reduced threshold to 15k chars (~4k tokens) to avoid 413 Payload Too Large errors
+        if len(full_text) > 15000:
             # print(f"  - Large Doc ({len(full_text)} chars). Chunking...")
-            all_chunks = chunk_text(full_text, chunk_size=12000, overlap=500)
+            all_chunks = chunk_text(full_text, chunk_size=15000, overlap=1000)
             
             # Smart Selection: Limit to max 6 chunks for speed
             if len(all_chunks) > 6:
@@ -63,27 +44,25 @@ def analyze_single_document(doc):
             chunk_summaries = []
             
             # Parallel Chunk Analysis (Mini-batch)
-            def analyze_chunk(idx, chunk):
+            # Sequential Chunk Analysis to avoid Rate Limits
+            for i, chunk in enumerate(selected_chunks):
                 chunk_prompt = f"""
-                Analyze this segment (Part {idx+1}) of "{doc['title']}".
-                Segment: {chunk[:15000]}
+                Analyze this segment (Part {i+1}) of "{doc['title']}".
+                Segment: {chunk[:16000]}
                 Task: Extract Research Problem, Methodology, Findings, Limitations.
                 Output: Concise bullet points.
                 """
                 try:
-                    return query_gemini(chunk_prompt, fallback_to_others=True)
-                except:
-                    return ""
-
-            with ThreadPoolExecutor(max_workers=3) as chunk_executor:
-                futures = [chunk_executor.submit(analyze_chunk, i, c) for i, c in enumerate(selected_chunks)]
-                for f in as_completed(futures):
-                    res = f.result()
+                    res = query_stage("analysis", chunk_prompt)
                     if res: chunk_summaries.append(res)
+                    time.sleep(1) # Pace requests slightly
+                except Exception as e:
+                    print(f"    x Chunk analysis failed: {e}")
+                    pass
             
             text_context = "\n".join(chunk_summaries)
         else:
-            text_content = full_text[:20000] 
+            text_content = full_text[:18000] 
             text_context = text_content
 
         prompt = f"""
@@ -107,7 +86,8 @@ def analyze_single_document(doc):
         - All output must be paraphrased. Do NOT copy text verbatim.
         - Focus on extracting *knowledge*, not just describing the paper.
         
-        Output Format (JSON strictly):
+        Output Format:
+        Return ONLY the JSON object below. Do not add markdown or conversational text.
         {{
             "research_problem": "string",
             "methodology": "string",
@@ -116,31 +96,27 @@ def analyze_single_document(doc):
             "research_gaps": "string",
             "novelty_assessment": "string",
             "technical_depth_score": 5, 
-            "missing_entities": "string (list of missing specific details)"
+            "missing_entities": "string"
         }}
         """
         
-        response = query_gemini(prompt, fallback_to_others=False)
+        response = query_stage("analysis", prompt)
         
         # Robust Parsing
-        analysis = extract_json(response)
+        analysis = extract_json_from_text(response)
+        
         if not analysis:
-            try:
-                cleaned_response = response.replace("```json", "").replace("```", "")
-                analysis = json.loads(cleaned_response)
-            except:
-                # Fallback: If model text isn't JSON, wrap it anyway so we don't lose the data
-                print(f"  ! Warning: Could not parse JSON for {doc['title'][:15]}. Using raw text fallback.")
-                analysis = {
-                    "research_problem": "JSON Parsing Failed",
-                    "methodology": "See findings",
-                    "key_findings": response if response else "No content returned",
-                    "limitations": "N/A",
-                    "research_gaps": "N/A",
-                    "novelty_assessment": "N/A",
-                    "technical_depth_score": 0,
-                    "missing_entities": "Parsing Failed"
-                }
+            print(f"  ! Warning: Could not parse JSON for {doc['title'][:15]}. Using raw text fallback.")
+            analysis = {
+                "research_problem": "JSON Parsing Failed",
+                "methodology": "See findings",
+                "key_findings": response if response else "No content returned",
+                "limitations": "N/A",
+                "research_gaps": "N/A",
+                "novelty_assessment": "N/A",
+                "technical_depth_score": 0,
+                "missing_entities": "Parsing Failed"
+            }
         
         doc['analysis'] = analysis
         print(f"  + Analysis Complete: {doc['title'][:30]}...")
@@ -151,17 +127,17 @@ def analyze_single_document(doc):
         return None
 
 def stage3_document_analysis(documents):
-    print("\n--- STAGE 3: DOCUMENT ANALYSIS (Parallel) ---")
+    print("\n--- STAGE 3: DOCUMENT ANALYSIS (Sequential) ---")
     analyzed_documents = []
     
-    # Process documents in parallel
-    # max_workers=2 to reduce Rate Limits and Local LLM load
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future_to_doc = {executor.submit(analyze_single_document, doc): doc for doc in documents}
+    # Process documents sequentially to avoid Rate Limits
+    for doc in documents:
+        result = analyze_single_document(doc)
+        if result:
+            analyzed_documents.append(result)
         
-        for future in as_completed(future_to_doc):
-            result = future.result()
-            if result:
-                analyzed_documents.append(result)
+        # Pace requests to respect API limits
+        import time
+        time.sleep(2)
                 
     return analyzed_documents

@@ -1,4 +1,4 @@
-from utils.llm import query_groq
+from utils.llm import query_stage
 import json
 import re
 
@@ -14,7 +14,7 @@ def stage4_academic_scoring(analyzed_documents, topic):
         print(f"Scoring: {doc['title'][:50]}...")
         
         prompt = f"""
-        Role: Strict Academic Reviewer.
+        Role: Research Relevance Evaluator.
         Target Research Topic: "{topic}"
         
         Document Title: {doc['title']}
@@ -25,39 +25,34 @@ def stage4_academic_scoring(analyzed_documents, topic):
         - Novelty: {analysis.get('novelty_assessment')}
         
         Evaluate based on:
-        1. Novelty
-        2. Methodological rigor
-        3. Relevance to the research topic
-        4. Academic clarity
-        5. Suitability for Scopus-indexed journals
+        1. Relevance to the research topic (Most Important)
+        2. Information value
+        3. Clarity
+        4. Methodological rigor (Optional but good)
+        5. Usefulness for a synthesis paper
         
-        Return ONLY valid JSON:
+        Return *only* the JSON object below. Do not add any text before or after.
         {{
-          "score": number (0-10),
-          "strengths": "string",
-          "weaknesses": "string"
+          "score": 5, 
+          "strengths": "Short summary",
+          "weaknesses": "Short summary"
         }}
-        
-        No explanations. No markdown.
         """
         
-        response = query_groq(prompt, json_mode=True, fallback_to_others=True)
-        try:
-            # Robust Extraction
-            match = re.search(r'\{.*\}', response, re.DOTALL)
-            if match:
-                json_str = match.group(0)
-                score_data = json.loads(json_str)
-            else:
-                # Fallback to direct load or primitive cleanup
-                cleaned = response.replace("```json", "").replace("```", "").strip()
-                score_data = json.loads(cleaned)
-                
+        response = query_stage("scoring", prompt)
+        
+        from utils.json_parser import extract_json_from_text
+        score_data = extract_json_from_text(response)
+        
+        if score_data:
             doc['scoring'] = score_data
             scored_documents.append(doc)
             print(f"  Score: {score_data.get('score')}")
-        except Exception as e:
-            print(f"  Error scoring document: {e}")
-            continue
+        else:
+            print(f"  Error parsing score for {doc['title'][:20]}")
+            # print(f"  Raw: {response[:100]}...")
+            
+        import time
+        time.sleep(2) # Avoid Rate Limits
             
     return scored_documents

@@ -9,3 +9,4 @@ ollama
 anthropic
 markdown
 xhtml2pdf
+numpy
