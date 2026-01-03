@@ -14,8 +14,8 @@ def google_search(query, num_results=5):
     """
     Performs a Google Custom Search.
     """
-    # Check for Valid Google Key. If missing or invalid (Groq key), use DuckDuckGo.
-    if not GOOGLE_API_KEY or GOOGLE_API_KEY.startswith("gsk_"):
+
+    def run_ddg_fallback(query):
         print(f"  [Search] Using DuckDuckGo (Fallback) for: '{query}'")
         try:
             from duckduckgo_search import DDGS
@@ -34,6 +34,10 @@ def google_search(query, num_results=5):
             print(f"  [Search] DDG Failed: {e}")
             return []
 
+    # Check for Valid Google Key. If missing or invalid (Groq key), use DuckDuckGo.
+    if not GOOGLE_API_KEY or GOOGLE_API_KEY.startswith("gsk_"):
+        return run_ddg_fallback(query)
+
     params = {
         'key': GOOGLE_API_KEY,
         'cx': GOOGLE_CSE_ID,
@@ -48,8 +52,8 @@ def google_search(query, num_results=5):
         return response.json().get('items', [])
     except Exception as e:
         print(f"Error performing Google Search: {e}")
-        # Fallback to DDG on API error too?
-        return []
+        # Fallback to DDG on API error too
+        return run_ddg_fallback(query)
 
 def download_and_parse(url):
     """

@@ -55,11 +55,11 @@ def query_offline_llm(prompt, model_name=None):
     except Exception as e:
         error_str = str(e).lower()
         if "not found" in error_str:
-            return f"Error: Ollama model '{OLLAMA_MODEL}' not found."
+            raise ValueError(f"Ollama model '{target_model}' not found.")
         if "401" in error_str or "unauthorized" in error_str:
-            return "Error: Ollama Cloud API Key is invalid or unauthorized."
+             raise PermissionError("Ollama Cloud API Key is invalid or unauthorized.")
         print(f"Error querying Ollama: {e}")
-        return f"Error: {str(e)}"
+        raise e
 
 if __name__ == "__main__":
     # Test Ollama

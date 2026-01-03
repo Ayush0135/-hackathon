@@ -22,6 +22,9 @@ ENV/
 # Agent
 .agent/
 
+# Secrets
+firebase_service_account.json
+
 # Databases
 *.db
 *.sqlite3

@@ -212,8 +212,10 @@ def save_research_to_db(topic, content):
 
 def run_research_pipeline(topic):
     try:
+        sys.__stdout__.write(f"DEBUG: run_research_pipeline called for {topic}\n")
         capture = OutputCapture()
         with redirect_stdout(capture):
+            sys.__stdout__.write("DEBUG: Inside redirect_stdout block\n")
             # ... (Pipeline Stages 1-8 same as before)
             # COPIED EXISTING LOGIC SHORTHAND FOR BREVITY IN EDIT
             print(f"Starting research on: {topic}")
@@ -294,6 +296,8 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if data.startswith("START:"):
                 topic = data[6:]
+                sys.__stdout__.write(f"DEBUG: START command received for topic: {topic}\n")
+                
                 # Clear queue
                 with log_queue.mutex:
                     log_queue.queue.clear()
@@ -301,17 +305,21 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Run pipeline in a separate thread so we don't block the websocket loop
                 t = threading.Thread(target=run_research_pipeline, args=(topic,))
                 t.start()
+                sys.__stdout__.write(f"DEBUG: Thread started. ID: {t.ident}\n")
                 
                 # Start a loop to drain the queue and send to client
                 while t.is_alive() or not log_queue.empty():
                     try:
                         # Non-blocking get
                         msg = log_queue.get(timeout=0.1)
-                        await websocket.send_text(msg)
+                        if msg:
+                             # sys.__stdout__.write(f"DEBUG: Sending WS message: {msg[:50]}...\n")
+                             await websocket.send_text(msg)
                     except queue.Empty:
                         await asyncio.sleep(0.1)
                         
                 await websocket.send_text("DONE")
+                sys.__stdout__.write("DEBUG: Pipeline finished (thread dead and queue empty).\n")
                 
     except WebSocketDisconnect:
         print("Client disconnected")

@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useUser, UserButton, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
 import ReactMarkdown from 'react-markdown';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const { user, isLoaded, isSignedIn } = useUser();
   const router = useRouter();
   const [topic, setTopic] = useState('');
   const [status, setStatus] = useState<'idle' | 'running' | 'complete'>('idle');
@@ -13,24 +15,79 @@ export default function Home() {
   const [finalPaper, setFinalPaper] = useState('');
   const socketRef = useRef<WebSocket | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const [isSyncing, setIsSyncing] = useState(true);
+  // State for history
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
+  // Auth Handling & Backend Sync
   useEffect(() => {
-    // Auth Check
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-    }
-  }, [router]);
+    if (isLoaded) {
+      if (!isSignedIn) {
+        router.push('/sign-in');
+      } else if (user) {
+        // User is signed in, sync with backend
+        const sync = async () => {
+          try {
+            const email = user.primaryEmailAddress?.emailAddress;
+            if (!email) return;
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
-  };
+            // 1. Silent Register
+            try {
+              await fetch('http://localhost:8000/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email,
+                  password: "temp-secure-pass",
+                  otp: "GOOGLE_BYPASS"
+                }),
+              });
+            } catch (e) { }
+
+            // 2. Login
+            const res = await fetch('http://localhost:8000/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email,
+                password: "temp-secure-pass"
+              }),
+            });
+
+            const data = await res.json();
+            if (data.access_token) {
+              localStorage.setItem('token', data.access_token);
+            }
+          } catch (e) {
+            console.error("Backend sync failed", e);
+          } finally {
+            setIsSyncing(false);
+          }
+        };
+        sync();
+      }
+    }
+  }, [isLoaded, isSignedIn, user, router]);
 
   useEffect(() => {
     // Auto-scroll logs
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
+
+  if (!isLoaded || (isSignedIn && isSyncing)) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center text-amber-500 font-mono">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="tracking-widest uppercase text-xs">Synchronizing Neural Uplink...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Logout is handled by UserButton or Clerk's signOut, but here's a manual wrapper if needed
+  // const handleLogout = () => signOut(() => router.push('/login'));
 
   const startResearch = () => {
     if (!topic.trim()) return;
@@ -84,10 +141,13 @@ export default function Home() {
 
           setCurrentStage(stageMap[stageCode] || 'Processing...');
           setStageNumber(numMap[stageCode] || stageNumber);
-        } else if (msg.startsWith('ERROR:') || msg.toLowerCase().includes('traceback') || msg.toLowerCase().includes('exception')) {
-          console.log("Supressed Backend Error:", msg);
-        } else {
-          setLogs(prev => [...prev.slice(-200), msg]);
+
+          // Show errors in the UI instead of suppressing them
+          if (msg.startsWith('ERROR:') || msg.toLowerCase().includes('traceback')) {
+            setLogs(prev => [...prev.slice(-200), `⚠️ SYSTEM ERROR: ${msg}`]);
+          } else {
+            setLogs(prev => [...prev.slice(-200), msg]);
+          }
         }
       };
 
@@ -106,9 +166,7 @@ export default function Home() {
     connectWebSocket();
   };
 
-  // State for history
-  const [history, setHistory] = useState<any[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+
 
   const fetchHistory = async () => {
     try {
@@ -131,12 +189,16 @@ export default function Home() {
           <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-white">✕</button>
         </div>
         <div className="space-y-4 overflow-y-auto h-[80vh]">
-          {history.map((item: any) => (
-            <div key={item.id} className="p-4 bg-white/5 rounded border border-white/5 hover:border-amber-500/50 cursor-pointer transition">
-              <div className="text-sm font-bold text-white mb-1">{item.topic}</div>
-              <div className="text-xs text-slate-500">{new Date(item.date).toLocaleDateString()}</div>
-            </div>
-          ))}
+          {Array.isArray(history) && history.length > 0 ? (
+            history.map((item: any) => (
+              <div key={item.id} className="p-4 bg-white/5 rounded border border-white/5 hover:border-amber-500/50 cursor-pointer transition">
+                <div className="text-sm font-bold text-white mb-1">{item.topic}</div>
+                <div className="text-xs text-slate-500">{new Date(item.date).toLocaleDateString()}</div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-slate-500 text-sm">No archives found (or sync error).</div>
+          )}
         </div>
       </div>
 
@@ -154,9 +216,9 @@ export default function Home() {
             <button onClick={fetchHistory} className="text-xs font-mono text-slate-400 hover:text-amber-500 uppercase tracking-widest transition">
               Archives
             </button>
-            <button onClick={handleLogout} className="text-xs font-mono text-red-500 hover:text-red-400 uppercase tracking-widest transition border border-red-500/30 px-3 py-1 rounded">
-              LOGOUT
-            </button>
+            <div className="border border-white/10 rounded-full p-1">
+              <UserButton />
+            </div>
           </div>
         </div>
       </header>

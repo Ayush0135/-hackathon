@@ -116,29 +116,31 @@ def _call_anthropic(prompt):
 # Format: "stage_name": ["model_id_1", "model_id_2"]
 # Model IDs can be: 'groq', 'anthropic', 'gemini', or 'ollama:model_name'
 STAGE_CONFIG = {
-    "default": ["groq", "anthropic", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
+    "default": ["groq", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Fast, Logic Heavy
-    "topic": ["groq", "anthropic", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
+    "topic": ["groq", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Search filtering (High volume, needs speed)
-    "discovery": ["groq", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"], 
+    "discovery": ["groq", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"], 
     
     # Analysis (Heavy Context, Reasoning)
     "analysis": [
-        "groq",                      
+        "groq",
+        "ollama:deepseek-r1",
+        "ollama:qwen2.5",
         "ollama:llama3.2",
         "ollama:gemma2",
         "ollama:mistral"
     ],
     
     # Scoring (FAST, strict formatting)
-    "scoring": ["groq", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
+    "scoring": ["groq", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Synthesis & Generation (Creative, high quality)
-    "synthesis": ["groq", "anthropic", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
-    "generation": ["anthropic", "groq", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
-    "review": ["anthropic", "groq", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"]
+    "synthesis": ["groq", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
+    "generation": ["anthropic", "groq", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
+    "review": ["anthropic", "groq", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"]
 }
 
 def _resolve_strategy(model_id):
