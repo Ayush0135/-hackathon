@@ -2,11 +2,25 @@
 import os
 import time
 import warnings
-# Suppress the deprecation warning
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
-import google.generativeai as genai
-from groq import Groq
-from anthropic import Anthropic, NotFoundError
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", module="urllib3")
+warnings.filterwarnings("ignore", message=".*OpenSSL.*")
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
+
+try:
+    from anthropic import Anthropic, NotFoundError
+except ImportError:
+    Anthropic = None
+    NotFoundError = Exception
+
 from dotenv import load_dotenv
 from utils.llm_offline import query_offline_llm
 
@@ -23,17 +37,17 @@ from utils.memory import MemorySystem
 memory_system = MemorySystem()
 
 # Initialize Clients
-if GEMINI_API_KEY:
+if GEMINI_API_KEY and genai is not None:
     genai.configure(api_key=GEMINI_API_KEY)
 
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
-anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+groq_client = Groq(api_key=GROQ_API_KEY, timeout=60.0, max_retries=0) if GROQ_API_KEY and Groq is not None else None
+anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY, timeout=60.0, max_retries=0) if ANTHROPIC_API_KEY and Anthropic is not None else None
 
 # --- Internal Callers ---
 
 def _call_gemini(prompt):
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY not found.")
+    if not GEMINI_API_KEY or genai is None:
+        raise ValueError("GEMINI_API_KEY not found or google.generativeai not installed.")
     
     # Switched back to stable model to avoid 400 Bad Request / Deprecation issues
     model = genai.GenerativeModel('gemini-1.5-flash')
@@ -68,11 +82,11 @@ def _call_groq(prompt):
     if not groq_client:
         raise ValueError("GROQ_API_KEY not found or client init failed.")
     
-    # Updated to llama-3.3-70b-versatile
+    # Updated to llama-3.1-8b-instant (higher free-tier TPM limits)
     try:
         chat_completion = groq_client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
@@ -87,8 +101,8 @@ def _call_anthropic(prompt):
     if not anthropic_client:
         raise ValueError("ANTHROPIC_API_KEY not found or client init failed.")
     
-    # Updated: Try Claude 3.5 Sonnet (June version) then Haiku (most widely available)
-    model_id = "claude-3-5-sonnet-20240620" 
+    # Updated: Haiku is most widely available and very fast for research
+    model_id = "claude-3-haiku-20240307" 
     
     try:
         message = anthropic_client.messages.create(
@@ -116,17 +130,19 @@ def _call_anthropic(prompt):
 # Format: "stage_name": ["model_id_1", "model_id_2"]
 # Model IDs can be: 'groq', 'anthropic', 'gemini', or 'ollama:model_name'
 STAGE_CONFIG = {
-    "default": ["groq", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
+    "default": ["groq", "anthropic", "gemini", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Fast, Logic Heavy
-    "topic": ["groq", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
+    "topic": ["groq", "gemini", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral"],
     
     # Search filtering (High volume, needs speed)
-    "discovery": ["groq", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"], 
+    "discovery": ["groq", "gemini", "anthropic", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"], 
     
     # Analysis (Heavy Context, Reasoning)
     "analysis": [
         "groq",
+        "anthropic",
+        "gemini",
         "ollama:deepseek-r1",
         "ollama:qwen2.5",
         "ollama:llama3.2",
@@ -135,12 +151,12 @@ STAGE_CONFIG = {
     ],
     
     # Scoring (FAST, strict formatting)
-    "scoring": ["groq", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
+    "scoring": ["groq", "gemini", "anthropic", "ollama:qwen2.5", "ollama:llama3.2", "ollama:mistral", "ollama:phi3"],
     
     # Synthesis & Generation (Creative, high quality)
-    "synthesis": ["groq", "anthropic", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
-    "generation": ["anthropic", "groq", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
-    "review": ["anthropic", "groq", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"]
+    "synthesis": ["anthropic", "groq", "gemini", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
+    "generation": ["anthropic", "groq", "gemini", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"],
+    "review": ["anthropic", "groq", "gemini", "ollama:deepseek-r1", "ollama:qwen2.5", "ollama:llama3.2", "ollama:gemma2", "ollama:mistral"]
 }
 
 def _resolve_strategy(model_id):
@@ -159,42 +175,44 @@ def _resolve_strategy(model_id):
         return lambda p: query_offline_llm(p, model_name=model_name)
     else:
         # Default to offline if unknown
-        return lambda p: query_offline_llm(p)
+        return lambda p: query_offline_llm(p, model_name='llama3.2')
 
 def execute_strategies(strategies, prompt):
     """
     Executes a list of strategy functions in order.
     """
     errors = []
+    
+    # Try strategies in order
     for i, func in enumerate(strategies):
         try:
              # print(f"  [Strategy {i+1}] Executing...") 
              return func(prompt)
         except Exception as e:
-            errors.append(str(e))
             from termcolor import colored
-            
             error_msg = str(e)
-            if "429" in error_msg or "Rate limit" in error_msg:
-                print(colored(f"  [Limit] Strategy {i+1} ({func.__name__ if hasattr(func, '__name__') else 'Unknown'}) rate limited. Switching...", "yellow"))
-            elif "not found" in error_msg.lower():
-                 print(colored(f"  [Config] Strategy {i+1} Key not found/Model missing. Switching...", "yellow"))
+            
+            if "429" in error_msg or "Rate limit" in error_msg or "ResourceExhausted" in error_msg or "rate_limit_exceeded" in error_msg:
+                print(colored(f"  [Limit] Strategy {i+1} rate limited. Switching...", "yellow"))
+            elif "not found" in error_msg.lower() or "connection" in error_msg.lower():
+                 print(colored(f"  [Config] Strategy {i+1} Key/Model missing or offline. Switching...", "yellow"))
             else:
                 print(colored(f"  [Error] Strategy {i+1} failed: {error_msg[:200]}...", "red"))
-                
+            
+            errors.append(error_msg)
             continue
             
     # Fallback to generic offline if enabled and not already tried
     enable_offline = os.getenv("ENABLE_OFFLINE_FALLBACK", "True").lower() == "true"
     if enable_offline:
         try:
-            return query_offline_llm(prompt)
+            return query_offline_llm(prompt, model_name='llama3.2')
         except Exception as e:
             errors.append(f"Offline Default: {e}")
             
     raise Exception(f"All strategies failed. Errors: {errors}")
 
-def query_stage(stage, prompt):
+def query_stage(stage, prompt, skip_memory=False):
     """
     Primary Entry Point for Stage-based LLM routing.
     """
@@ -202,25 +220,31 @@ def query_stage(stage, prompt):
     model_chain = STAGE_CONFIG.get(stage, STAGE_CONFIG['default'])
     
     # Resolve to functions
-    # Resolve to functions
     strategies = [_resolve_strategy(m) for m in model_chain]
     
-    # --- Memory Integration ---
-    # 1. Retrieve Context
-    context_str = memory_system.retrieve_context(prompt)
-    
     final_prompt = prompt
-    if context_str:
-        # Append context to prompt in a clearly separated way
-        final_prompt = f"{prompt}\n\n[SYSTEM: The following are relevant past interactions to help with context]\n{context_str}\n[End Context]"
+
+    if not skip_memory:
+        # --- Memory Integration ---
+        # 1. Retrieve Context
+        context_str = memory_system.retrieve_context(prompt)
+        
+        if context_str:
+            # Append context to prompt in a clearly separated way
+            final_prompt = f"{prompt}\n\n[SYSTEM: The following are relevant past interactions to help with context]\n{context_str}\n[End Context]"
     
     # 2. Execute
     response = execute_strategies(strategies, final_prompt)
     
     # 3. Save Memory
     # We save the *original* prompt, not the one with context, to avoid recursive context bloat
-    if response:
-        memory_system.add_memory(prompt, response, metadata={"stage": stage})
+    if response and not skip_memory:
+        import threading
+        threading.Thread(
+            target=memory_system.add_memory, 
+            args=(prompt, response, {"stage": stage}), 
+            daemon=True
+        ).start()
         
     return response
 

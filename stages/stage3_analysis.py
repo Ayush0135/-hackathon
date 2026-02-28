@@ -1,6 +1,7 @@
 from utils.llm import query_stage
 import time
 from utils.json_parser import extract_json_from_text
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def chunk_text(text, chunk_size=15000, overlap=1000):
     """
@@ -24,45 +25,44 @@ def chunk_text(text, chunk_size=15000, overlap=1000):
 
 def analyze_single_document(doc):
     try:
-        # print(f"Analyzing: {doc['title'][:30]}...")
+        print(f"Analyzing: {doc['title'][:40]}...") # Log start
         full_text = doc['raw_text']
         
         # Strategy Decision: Chunk vs Whole
-        # Reduced threshold to 15k chars (~4k tokens) to avoid 413 Payload Too Large errors
-        if len(full_text) > 15000:
+        # Reduced threshold to 7k chars to comfortably fit inside tight LLM context windows
+        if len(full_text) > 7000:
             # print(f"  - Large Doc ({len(full_text)} chars). Chunking...")
-            all_chunks = chunk_text(full_text, chunk_size=15000, overlap=1000)
+            all_chunks = chunk_text(full_text, chunk_size=7000, overlap=500)
             
-            # Smart Selection: Limit to max 6 chunks for speed
-            if len(all_chunks) > 6:
-                # First 2, Middle 2, Last 2
+            # Smart Selection: Limit to max 3 chunks to prevent exploding final prompt tokens
+            if len(all_chunks) > 3:
+                # First, Middle, Last
                 mid = len(all_chunks) // 2
-                selected_chunks = all_chunks[:2] + all_chunks[mid:mid+2] + all_chunks[-2:]
+                selected_chunks = [all_chunks[0], all_chunks[mid], all_chunks[-1]]
             else:
                 selected_chunks = all_chunks
             
             chunk_summaries = []
             
-            # Parallel Chunk Analysis (Mini-batch)
-            # Sequential Chunk Analysis to avoid Rate Limits
+            # Sequential Chunk Analysis to prevent overusing TPM limits
             for i, chunk in enumerate(selected_chunks):
                 chunk_prompt = f"""
                 Analyze this segment (Part {i+1}) of "{doc['title']}".
-                Segment: {chunk[:16000]}
+                Segment: {chunk[:7500]}
                 Task: Extract Research Problem, Methodology, Findings, Limitations.
                 Output: Concise bullet points.
                 """
                 try:
-                    res = query_stage("analysis", chunk_prompt)
+                    res = query_stage("analysis", chunk_prompt, skip_memory=True)
                     if res: chunk_summaries.append(res)
                     time.sleep(1) # Pace requests slightly
                 except Exception as e:
                     print(f"    x Chunk analysis failed: {e}")
                     pass
             
-            text_context = "\n".join(chunk_summaries)
+            text_context = "\n".join(chunk_summaries)[:8000]
         else:
-            text_content = full_text[:18000] 
+            text_content = full_text[:8000] 
             text_context = text_content
 
         prompt = f"""
@@ -100,7 +100,7 @@ def analyze_single_document(doc):
         }}
         """
         
-        response = query_stage("analysis", prompt)
+        response = query_stage("analysis", prompt, skip_memory=True)
         
         # Robust Parsing
         analysis = extract_json_from_text(response)

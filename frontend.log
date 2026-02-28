@@ -1,0 +1,8 @@
+npm error code ENOENT
+npm error syscall open
+npm error path /Users/ayush/Library/Mobile Documents/com~apple~CloudDocs/Desktop/project/multi layer research agent/package.json
+npm error errno -2
+npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/Users/ayush/Library/Mobile Documents/com~apple~CloudDocs/Desktop/project/multi layer research agent/package.json'
+npm error enoent This is related to npm not being able to find a file.
+npm error enoent
+npm error A complete log of this run can be found in: /Users/ayush/.npm/_logs/2026-02-20T19_33_22_420Z-debug-0.log

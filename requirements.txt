@@ -8,5 +8,14 @@ termcolor
 ollama
 anthropic
 markdown
-xhtml2pdf
+numpy
+fastapi
+uvicorn
+sqlalchemy
+passlib
+python-jose[cryptography]
+bcrypt
+duckduckgo_search
+sentence-transformers
+scikit-learn
 numpy

@@ -6,11 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration for Ollama
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
-OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY")
-# Default to localhost if not set, typical for local runs.
-# Only use https://ollama.com/api if actually intended (which requires keys usually).
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = "llama3.2"
+OLLAMA_API_KEY = None
+OLLAMA_HOST = "http://localhost:11434"
 
 def get_client():
     if OLLAMA_API_KEY:
@@ -40,14 +38,14 @@ def query_offline_llm(prompt, model_name=None):
             response = client.chat(
                 model=target_model, 
                 messages=messages, 
-                options={'num_ctx': 8192}, # Increased context window for research
+                options={'num_ctx': 8192}, # Optimized context window for local inference length
                 format='json' if 'json' in prompt.lower() else ''
             )
         else:
             response = ollama.chat(
                 model=target_model, 
                 messages=messages, 
-                options={'num_ctx': 8192}, # Increased context window for research
+                options={'num_ctx': 8192}, # Optimized context window for local inference length
                 format='json' if 'json' in prompt.lower() else ''
             )
             

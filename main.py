@@ -1,7 +1,13 @@
 import sys
 import os
-from dotenv import load_dotenv
+import warnings
 
+# Suppress annoying dependency warnings from outdated packages
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", module="urllib3")
+warnings.filterwarnings("ignore", message=".*OpenSSL.*")
+
+from dotenv import load_dotenv
 # Import stages
 from stages.stage1_topic import stage1_topic_decomposition
 from stages.stage2_discovery import stage2_document_discovery

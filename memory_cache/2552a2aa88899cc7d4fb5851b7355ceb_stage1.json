@@ -1,0 +1,111 @@
+{
+  "domain": "History of Ancient India",
+  "subtopics": [
+    {
+      "name": "Indus Valley Civilization (Harappan Civilization)",
+      "keywords": [
+        "Indus Valley Civilization",
+        "Harappan Civilization",
+        "urbanization",
+        "agriculture",
+        "trade"
+      ],
+      "search_queries": [
+        "site:.edu \"Indus Valley Civilization\" OR \"Harappan Civilization\"",
+        "site:.gov \"Indus Valley Civilization timeline\""
+      ]
+    },
+    {
+      "name": "Vedic Period and Early Indian Society",
+      "keywords": [
+        "Vedic Period",
+        "Rigveda",
+        "Sociology of ancient India",
+        "caste system",
+        "varna"
+      ],
+      "search_queries": [
+        "site:.edu \"Vedic Period and early Indian society\"",
+        "site:.edu \"caste system in ancient India\""
+      ]
+    },
+    {
+      "name": "Mauryan Empire and the Rule of Ashoka",
+      "keywords": [
+        "Mauryan Empire",
+        "Ashoka Maurya",
+        "Empire-building in ancient India",
+        "Buddhism"
+      ],
+      "search_queries": [
+        "site:.edu \"Mauryan Empire and the rule of Ashoka\"",
+        "site:.gov \"Mauryan Empire timeline\""
+      ]
+    },
+    {
+      "name": "Pre-Mauryan Kingdoms and Dynasties",
+      "keywords": [
+        "Pre-Mauryan Kingdoms",
+        "Licchavi dynasty",
+        "Sisunaga dynasty",
+        "Mahajanapadas"
+      ],
+      "search_queries": [
+        "site:.edu \"Pre-Mauryan Kingdoms and dynasties\"",
+        "site:.edu \"Mahajanapadas of ancient India\""
+      ]
+    },
+    {
+      "name": "Trade and Cultural Exchange in Ancient India",
+      "keywords": [
+        "Trade in ancient India",
+        "Silk Road",
+        "Diasporic communities",
+        "Cross-cultural exchange"
+      ],
+      "search_queries": [
+        "site:.edu \"Trade and cultural exchange in ancient India\"",
+        "site:.gov \"Silk Road and ancient India trade\""
+      ]
+    },
+    {
+      "name": "Ancient Indian Economy and Politics",
+      "keywords": [
+        "Ancient Indian economy",
+        "Gujarati and Mauryan economy",
+        "Feudalization in India",
+        "Ancient Indian politics"
+      ],
+      "search_queries": [
+        "site:.edu \"Ancient Indian economy and politics\"",
+        "site:.gov \"Feudalization in India and its impact\""
+      ]
+    },
+    {
+      "name": "Social Structure and Women's Roles in Ancient India",
+      "keywords": [
+        "Social structure in ancient India",
+        "Women's roles in ancient India",
+        "Patriarchal society",
+        "Role of women in Mauryan society"
+      ],
+      "search_queries": [
+        "site:.edu \"Social structure and women's roles in ancient India\"",
+        "site:.edu \"Role of women in Mauryan society\""
+      ]
+    },
+    {
+      "name": "Ancient Indian Sciences and Mathematics",
+      "keywords": [
+        "Ancient Indian sciences",
+        "Ayurveda and ancient Indian medicine",
+        "Surgery in ancient India",
+        "Contributions of ancient Indians to geometry and number systems"
+      ],
+      "search_queries": [
+        "site:.edu \"Ancient Indian sciences and mathematics\"",
+        "site:.gov \"Ayurveda and ancient Indian medicine contributions\""
+      ]
+    }
+  ]
+}

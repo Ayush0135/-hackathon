@@ -1,0 +1,65 @@
+{
+  "domain": "History of Ancient India",
+  "subtopics": [
+    {
+      "name": "Indus Valley Civilization",
+      "keywords": [
+        "Indus Valley Civilization",
+        "Harappan civilization",
+        "Bronze Age"
+      ],
+      "search_queries": [
+        "\"Indus Valley Civilization\" OR \"Harappan civilization\" site:.edu",
+        "\"Indus Valley Civilization\" AND \"Bronze Age\" site:.ac.in"
+      ]
+    },
+    {
+      "name": "Vedic Period (1500 BCE - 500 BCE)",
+      "keywords": [
+        "Vedic Period",
+        "Rigveda",
+        "Vedic scriptures"
+      ],
+      "search_queries": [
+        "\"Vedic Period\" OR \"Rigveda\" site:.edu",
+        "\"Vedic scriptures\" AND \"Rigveda\" site:.ac.in"
+      ]
+    },
+    {
+      "name": "Mauryan Empire (322 BCE - 185 BCE)",
+      "keywords": [
+        "Mauryan Empire",
+        "Ashoka the Great",
+        "Buddhism in India"
+      ],
+      "search_queries": [
+        "\"Mauryan Empire\" OR \"Ashoka the Great\" site:.edu",
+        "\"Buddhism in India\" AND \"Mauryan Empire\" site:.ac.in"
+      ]
+    },
+    {
+      "name": "Gupta Empire (320 CE - 550 CE)",
+      "keywords": [
+        "Gupta Empire",
+        "Kalidasa",
+        "Hinduism in India"
+      ],
+      "search_queries": [
+        "\"Gupta Empire\" OR \"Kalidasa\" site:.edu",
+        "\"Hinduism in India\" AND \"Gupta Empire\" site:.ac.in"
+      ]
+    },
+    {
+      "name": "Ancient Indian Society and Economy",
+      "keywords": [
+        "Ancient Indian society",
+        "Caste system",
+        "Economic systems in ancient India"
+      ],
+      "search_queries": [
+        "\"Ancient Indian society\" OR \"Caste system\" site:.edu",
+        "\"Economic systems in ancient India\" AND \"Caste system\" site:.ac.in"
+      ]
+    }
+  ]
+}

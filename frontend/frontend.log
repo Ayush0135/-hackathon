@@ -1,0 +1,23 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.227.24.189:3000
+- Environments: .env.local
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 1028ms
+(node:30325) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+○ Compiling / ...
+ GET / 200 in 3.4min (compile: 3.4min, proxy.ts: 9ms, render: 226ms)
+ POST / 200 in 36ms (compile: 4ms, proxy.ts: 15ms, render: 17ms)
+○ Compiling /sign-in/[[...rest]] ...
+ GET /sign-in 200 in 6.0s (compile: 6.0s, proxy.ts: 8ms, render: 20ms)
+ GET /sign-in/SignIn_clerk_catchall_check_1771612709003 200 in 74ms (compile: 7ms, proxy.ts: 12ms, render: 55ms)
+ GET / 200 in 40ms (compile: 4ms, proxy.ts: 6ms, render: 30ms)
+ POST / 200 in 20ms (compile: 3ms, proxy.ts: 9ms, render: 7ms)
+[?25h

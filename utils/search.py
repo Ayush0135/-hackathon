@@ -1,7 +1,9 @@
 import os
 import requests
 from bs4 import BeautifulSoup
+import urllib3
 import io
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import PyPDF2
 from dotenv import load_dotenv
 
@@ -10,6 +12,10 @@ load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
 
+import threading
+import time
+ddg_lock = threading.Lock()
+
 def google_search(query, num_results=5):
     """
     Performs a Google Custom Search.
@@ -17,22 +23,27 @@ def google_search(query, num_results=5):
 
     def run_ddg_fallback(query):
         print(f"  [Search] Using DuckDuckGo (Fallback) for: '{query}'")
-        try:
-            from duckduckgo_search import DDGS
-            with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=num_results))
-                # Map DDG format to our expected format
-                mapped_results = []
-                for r in results:
-                    mapped_results.append({
-                        'title': r.get('title'),
-                        'link': r.get('href'),
-                        'snippet': r.get('body')
-                    })
-                return mapped_results
-        except Exception as e:
-            print(f"  [Search] DDG Failed: {e}")
-            return []
+        # DuckDuckGo strictly blocks concurrent scraping. We must serialize.
+        with ddg_lock:
+            try:
+                from duckduckgo_search import DDGS
+                time.sleep(2) # Enforced delay specifically for DDG Anti-Bot
+                with DDGS() as ddgs:
+                    results = list(ddgs.text(query, max_results=num_results))
+                    if not results: return []
+                    mapped_results = []
+                    for r in results:
+                        mapped_results.append({
+                            'title': r.get('title'),
+                            'link': r.get('href'),
+                            'snippet': r.get('body')
+                        })
+                    return mapped_results
+            except Exception as e:
+                print(f"  [Search] DDG Failed: {e}")
+                import traceback
+                traceback.print_exc()
+                return []
 
     # Check for Valid Google Key. If missing or invalid (Groq key), use DuckDuckGo.
     if not GOOGLE_API_KEY or GOOGLE_API_KEY.startswith("gsk_"):
@@ -47,7 +58,7 @@ def google_search(query, num_results=5):
 
     url = "https://www.googleapis.com/customsearch/v1"
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, verify=False, timeout=15)
         response.raise_for_status()
         return response.json().get('items', [])
     except Exception as e:
@@ -61,8 +72,8 @@ def download_and_parse(url):
     Handles HTML and basic PDF parsing.
     """
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-        response = requests.get(url, headers=headers, timeout=10)
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        response = requests.get(url, headers=headers, timeout=25, verify=False)
         response.raise_for_status()
         
         content_type = response.headers.get('Content-Type', '').lower()

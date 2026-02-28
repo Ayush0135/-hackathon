@@ -1,0 +1,125 @@
+{
+  "domain": "Environmental Health Science",
+  "subtopics": [
+    {
+      "name": "Microplastic ingestion and bioaccumulation",
+      "keywords": [
+        "microplastics ingestion",
+        "bioaccumulation",
+        "human health effects",
+        "microplastic exposure",
+        "environmental health risks"
+      ],
+      "search_queries": [
+        "site:.gov OR site:.edu (microplastics ingestion AND bioaccumulation)",
+        "site:.ac.uk OR site:.edu (human health effects AND microplastic exposure)",
+        "site:.gov OR site:.ac.uk (microplastics AND environmental health risks)"
+      ]
+    },
+    {
+      "name": "Microplastic toxicity and biocompatibility",
+      "keywords": [
+        "microplastic toxicity",
+        "biocompatibility",
+        "microplastic composition",
+        "human cell responses",
+        "environmental health assessments"
+      ],
+      "search_queries": [
+        "site:.edu (microplastic toxicity AND biocompatibility)",
+        "site:.gov (microplastic composition AND human cell responses)",
+        "site:.ac.uk (environmental health assessments AND microplastic effects)"
+      ]
+    },
+    {
+      "name": "Microplastic persistence and degradation",
+      "keywords": [
+        "microplastic persistence",
+        "degradation",
+        "marine ecosystems",
+        "water bodies",
+        "environmental fate"
+      ],
+      "search_queries": [
+        "site:.gov (microplastic persistence AND degradation)",
+        "site:.edu (marine ecosystems AND microplastic impacts)",
+        "site:.ac.uk (water bodies AND microplastic effects)"
+      ]
+    },
+    {
+      "name": "Human exposure pathways and health risks",
+      "keywords": [
+        "human exposure pathways",
+        "health risks",
+        "microplastic ingestion routes",
+        "biological monitoring",
+        "environmental health studies"
+      ],
+      "search_queries": [
+        "site:.edu (human exposure pathways AND health risks)",
+        "site:.gov (microplastic ingestion routes AND biological monitoring)",
+        "site:.ac.uk (environmental health studies AND microplastic effects)"
+      ]
+    },
+    {
+      "name": "Policy and regulatory responses to microplastic pollution",
+      "keywords": [
+        "policy responses",
+        "regulatory frameworks",
+        "microplastic pollution mitigation",
+        "international cooperation",
+        "environmental protection"
+      ],
+      "search_queries": [
+        "site:.gov (policy responses AND microplastic pollution mitigation)",
+        "site:.edu (regulatory frameworks AND environmental protection)",
+        "site:.ac.uk (international cooperation AND microplastic control)"
+      ]
+    },
+    {
+      "name": "Microplastic impacts on aquatic life and ecosystems",
+      "keywords": [
+        "aquatic life impacts",
+        "ecosystem effects",
+        "marine food webs",
+        "microplastic accumulation",
+        "biological responses"
+      ],
+      "search_queries": [
+        "site:.edu (aquatic life impacts AND ecosystem effects)",
+        "site:.gov (marine food webs AND microplastic accumulation)",
+        "site:.ac.uk (biological responses AND microplastic exposure)"
+      ]
+    },
+    {
+      "name": "Microplastic pollution and socioeconomic factors",
+      "keywords": [
+        "socioeconomic factors",
+        "microplastic pollution costs",
+        "human health burdens",
+        "economic impacts",
+        "sustainable practices"
+      ],
+      "search_queries": [
+        "site:.gov (socioeconomic factors AND microplastic pollution costs)",
+        "site:.edu (human health burdens AND microplastic exposure)",
+        "site:.ac.uk (economic impacts AND sustainable practices)"
+      ]
+    },
+    {
+      "name": "Emerging research and future directions in microplastic research",
+      "keywords": [
+        "emerging research",
+        "future directions",
+        "microplastic studies",
+        "environmental science",
+        "public health"
+      ],
+      "search_queries": [
+        "site:.edu (emerging research AND future directions in microplastic studies)",
+        "site:.gov (environmental science AND microplastic impacts)",
+        "site:.ac.uk (public health AND microplastic risks)"
+      ]
+    }
+  ]
+}
